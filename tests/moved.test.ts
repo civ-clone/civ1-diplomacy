@@ -1,8 +1,9 @@
-import Action from '@civ-clone/core-unit/Action';
+import Effect from '@civ-clone/core-rule/Effect';
 import FillGenerator from '@civ-clone/simple-world-generator/tests/lib/FillGenerator';
 import { Grassland } from '@civ-clone/civ1-world/Terrains';
 import InteractionRegistry from '@civ-clone/core-diplomacy/InteractionRegistry';
 import { Move } from '@civ-clone/civ1-unit/Actions';
+import MovementCost from '@civ-clone/core-unit/Rules/MovementCost';
 import Player from '@civ-clone/core-player/Player';
 import RuleRegistry from '@civ-clone/core-rule/RuleRegistry';
 import UnitRegistry from '@civ-clone/core-unit/UnitRegistry';
@@ -11,8 +12,6 @@ import World from '@civ-clone/core-world/World';
 import { expect } from 'chai';
 import moved from '../Rules/Unit/moved';
 import validateMove from '@civ-clone/civ1-unit/Rules/Unit/validateMove';
-import MovementCost from '@civ-clone/core-unit/Rules/MovementCost';
-import Effect from '@civ-clone/core-rule/Effect';
 
 describe('unit:moved', (): void => {
   const ruleRegistry = new RuleRegistry(),

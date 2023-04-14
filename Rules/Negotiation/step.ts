@@ -1,24 +1,3 @@
-import Terminate from '@civ-clone/core-diplomacy/Negotiation/Terminate';
-import Effect from '@civ-clone/core-rule/Effect';
-import Criterion from '@civ-clone/core-rule/Criterion';
-import Accept from '@civ-clone/core-diplomacy/Proposal/Accept';
-import Peace from '@civ-clone/base-diplomacy-declaration-peace/Peace';
-import Negotiation from '@civ-clone/core-diplomacy/Negotiation';
-import ResolutionValue from '@civ-clone/core-diplomacy/Proposal/Resolution';
-import Proposal, {
-  IProposal,
-} from '@civ-clone/core-diplomacy/Negotiation/Proposal';
-import Dialogue from '@civ-clone/core-diplomacy/Negotiation/Dialogue';
-import { IAction } from '@civ-clone/core-diplomacy/Negotiation/Action';
-import { IConstructor } from '@civ-clone/core-registry/Registry';
-import Initiate from '@civ-clone/core-diplomacy/Negotiation/Initiate';
-import Decline from '@civ-clone/core-diplomacy/Proposal/Decline';
-import { IInteraction } from '@civ-clone/core-diplomacy/Interaction';
-import Step from '@civ-clone/core-diplomacy/Rules/Negotiation/Step';
-import {
-  RuleRegistry,
-  instance as ruleRegistryInstance,
-} from '@civ-clone/core-rule/RuleRegistry';
 import {
   InteractionRegistry,
   instance as interactionRegistryInstance,
@@ -27,18 +6,44 @@ import {
   PlayerResearchRegistry,
   instance as playerResearchRegistryInstance,
 } from '@civ-clone/core-science/PlayerResearchRegistry';
+import {
+  RuleRegistry,
+  instance as ruleRegistryInstance,
+} from '@civ-clone/core-rule/RuleRegistry';
+import Accept from '@civ-clone/core-diplomacy/Proposal/Accept';
 import Acknowledge from '@civ-clone/core-diplomacy/Proposal/Acknowledge';
 import Advance from '@civ-clone/core-science/Advance';
+import Criterion from '@civ-clone/core-rule/Criterion';
+import Decline from '@civ-clone/core-diplomacy/Proposal/Decline';
+import DemandTribute from '@civ-clone/library-diplomacy/Proposals/DemandTribute';
+import Dialogue from '@civ-clone/core-diplomacy/Negotiation/Dialogue';
+import Effect from '@civ-clone/core-rule/Effect';
 import ExchangeKnowledge from '@civ-clone/library-diplomacy/Proposals/ExchangeKnowledge';
+import Gold from '@civ-clone/base-city-yield-gold/Gold';
+import { IAction } from '@civ-clone/core-diplomacy/Negotiation/Action';
+import { IConstructor } from '@civ-clone/core-registry/Registry';
+import { IInteraction } from '@civ-clone/core-diplomacy/Interaction';
+import { IProposal } from '@civ-clone/core-diplomacy/Negotiation/Proposal';
+import Initiate from '@civ-clone/core-diplomacy/Negotiation/Initiate';
+import Negotiation from '@civ-clone/core-diplomacy/Negotiation';
 import OfferPeace from '@civ-clone/library-diplomacy/Proposals/OfferPeace';
+import Peace from '@civ-clone/base-diplomacy-declaration-peace/Peace';
 import Player from '@civ-clone/core-player/Player';
+import ResolutionValue from '@civ-clone/core-diplomacy/Proposal/Resolution';
+import Step from '@civ-clone/core-diplomacy/Rules/Negotiation/Step';
+import Terminate from '@civ-clone/core-diplomacy/Negotiation/Terminate';
+import Interaction from '@civ-clone/core-diplomacy/Rules/Negotiation/Interaction';
 
 export const getRules = (
   ruleRegistry: RuleRegistry = ruleRegistryInstance,
   interactionRegistry: InteractionRegistry = interactionRegistryInstance,
   playerResearchRegistry: PlayerResearchRegistry = playerResearchRegistryInstance
 ) => {
-  const onlyOncePerNegotiation = (
+  const dialogueNamespaceMatches = (
+      dialogue: Dialogue,
+      ...namespaces: string[]
+    ) => namespaces.includes(dialogue.key().split('.')[0]),
+    onlyOncePerNegotiation = (
       InteractionType: IConstructor<IProposal>
     ): Criterion =>
       // if it's a `Resolution` it could be used many times in a discussion
@@ -59,6 +64,18 @@ export const getRules = (
         (negotiation) =>
           negotiation.lastInteraction() instanceof ResolutionValue &&
           negotiation.lastInteraction().proposal() instanceof ActionType
+      ),
+    lastInteractionWasAcknowledgeForDialogueWithNamespace = (
+      ...keys: string[]
+    ): Criterion =>
+      new Criterion(
+        (negotiation) =>
+          negotiation.lastInteraction() instanceof Acknowledge &&
+          negotiation.lastInteraction().proposal() instanceof Dialogue &&
+          dialogueNamespaceMatches(
+            negotiation.lastInteraction().proposal(),
+            ...keys
+          )
       ),
     getNextBy = (negotiation: Negotiation) =>
       negotiation.lastInteraction() === null
@@ -83,8 +100,6 @@ export const getRules = (
         (negotiation) =>
           new ActionType(getNextBy(negotiation), key, negotiation, ruleRegistry)
       ),
-    dialogueNamespaceMatches = (dialogue: Dialogue, namespace: string) =>
-      dialogue.key().split('.')[0] === namespace,
     lastInteractionWasDialogueWithNamespace = (namespace: string) =>
       new Criterion((negotiation) => {
         const lastInteraction = negotiation.lastInteraction();
@@ -102,13 +117,6 @@ export const getRules = (
       ),
     namedStateResults = {
       standardTopics: [
-        [
-          onlyOncePerNegotiation(OfferPeace),
-          new Criterion(
-            (negotiation) => !hasPeaceTreaty(...negotiation.players())
-          ),
-          proposalAction(OfferPeace),
-        ],
         // [
         //   onlyOncePerNegotiation(DemandTribute),
         //   new Effect(
@@ -118,6 +126,16 @@ export const getRules = (
         //   // TODO: check relationship status and relative 'strength'
         // ],
         [
+          new Criterion(
+            (negotiation: Negotiation) =>
+              !negotiation
+                .interactions()
+                .some(
+                  (interaction) =>
+                    interaction instanceof Decline &&
+                    interaction.proposal() instanceof ExchangeKnowledge
+                )
+          ),
           new Criterion((negotiation) => {
             const [firstPlayerResearch, secondPlayerResearch] = negotiation
                 .players()
@@ -145,13 +163,43 @@ export const getRules = (
               firstPlayerAdvances.length > 0 && secondPlayerAdvances.length > 0
             );
           }),
-          proposalAction(ExchangeKnowledge),
+          new Effect((negotiation) => {
+            const interaction = negotiation.lastInteraction(),
+              [playerBy, playerFor] =
+                interaction !== null
+                  ? [interaction.by(), ...interaction.for()]
+                  : negotiation.players(),
+              [playerByResearch, playerForResearch] = [playerBy, playerFor].map(
+                (player: Player) => playerResearchRegistry.getByPlayer(player)
+              ),
+              advances = playerForResearch
+                .complete()
+                .filter(
+                  (completedAdvance: Advance) =>
+                    !playerByResearch.completed(completedAdvance.sourceClass())
+                );
+
+            return new ExchangeKnowledge(
+              advances,
+              getNextBy(negotiation),
+              negotiation,
+              ruleRegistry
+            );
+          }),
+        ],
+        [
+          onlyOncePerNegotiation(OfferPeace),
+          new Criterion(
+            (negotiation) => !hasPeaceTreaty(...negotiation.players())
+          ),
+          proposalAction(OfferPeace),
         ],
         // [
         //   proposalAction(DeclareWarOnPlayer),
         //   // TODO: check that proposed `Player` is not currently at `War` with the mutual `Player`
         // ],
-        [proposalAction(Terminate)],
+        [dialogueAction(Dialogue, 'handover')],
+        // [proposalAction(Terminate)],
       ],
     },
     acceptDecline = [[resolutionAction(Accept)], [resolutionAction(Decline)]],
@@ -204,11 +252,6 @@ export const getRules = (
         [[resolutionAction(Acknowledge)]],
       ],
 
-      [
-        [Acknowledge, lastInteractionWasResolutionForAction(Dialogue)],
-        namedStateResults.standardTopics,
-      ],
-
       [[OfferPeace], acceptDecline],
       [
         [Decline, lastInteractionWasResolutionForAction(OfferPeace)],
@@ -223,16 +266,66 @@ export const getRules = (
         [Dialogue, lastInteractionWasDialogueWithNamespace('decline-peace')],
         [[resolutionAction(Acknowledge)]],
       ],
+
+      [
+        [
+          Acknowledge,
+          lastInteractionWasAcknowledgeForDialogueWithNamespace(
+            'decline-peace'
+          ),
+        ],
+        [
+          [
+            new Effect(
+              (negotiation) =>
+                new Terminate(getNextBy(negotiation), negotiation, ruleRegistry)
+            ),
+          ],
+        ],
+      ],
+
+      [
+        [
+          Acknowledge,
+          lastInteractionWasAcknowledgeForDialogueWithNamespace(
+            'decline-demand'
+          ),
+        ],
+        [
+          [
+            new Effect(
+              (negotiation) =>
+                new Terminate(getNextBy(negotiation), negotiation, ruleRegistry)
+            ),
+          ],
+        ],
+      ],
+
+      [
+        [
+          Acknowledge,
+          new Criterion(
+            (negotiation) =>
+              negotiation.lastInteraction() instanceof Acknowledge &&
+              negotiation.lastInteraction().proposal() instanceof Dialogue &&
+              !['decline-demand', 'decline-peace'].includes(
+                negotiation.lastInteraction().proposal().key()
+              )
+          ),
+        ],
+        namedStateResults.standardTopics,
+      ],
+
       [
         [Dialogue, lastInteractionWasDialogueWithNamespace('accept-peace')],
         [[resolutionAction(Acknowledge)]],
       ],
-      // [[DemandTribute], acceptDecline],
-      //
-      // [
-      //   [Decline, lastInteractionWasResolutionForAction(DemandTribute)],
-      //   [[dialogueAction(Dialogue, 'decline-demand.neutral')]],
-      // ],
+      [[DemandTribute], [[resolutionAction(Decline)]]],
+
+      [
+        [Decline, lastInteractionWasResolutionForAction(DemandTribute)],
+        [[dialogueAction(Dialogue, 'decline-demand.neutral')]],
+      ],
       // [
       //   [Accept, lastInteractionWasResolutionForAction(DemandTribute)],
       //   [[dialogueAction(Dialogue, 'accept-demand.neutral')]],
@@ -255,6 +348,24 @@ export const getRules = (
       [
         [Accept, lastInteractionWasResolutionForAction(ExchangeKnowledge)],
         namedStateResults.standardTopics,
+      ],
+
+      [
+        [Dialogue, lastInteractionWasDialogueWithNamespace('handover')],
+        [
+          [dialogueAction(Dialogue, 'welcome-peace')],
+          [
+            new Effect(
+              (negotiation) =>
+                new DemandTribute(
+                  new Gold(50),
+                  getNextBy(negotiation),
+                  negotiation,
+                  ruleRegistry
+                )
+            ),
+          ],
+        ],
       ],
     ] as [
       [IConstructor<IInteraction> | null, ...Criterion[]],

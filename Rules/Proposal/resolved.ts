@@ -1,38 +1,52 @@
 import {
-  instance as ruleRegistryInstance,
+  ClientRegistry,
+  instance as clientRegistryInstance,
+} from '@civ-clone/core-client/ClientRegistry';
+import {
   RuleRegistry,
+  instance as ruleRegistryInstance,
 } from '@civ-clone/core-rule/RuleRegistry';
 import {
-  instance as interactionRegistryInstance,
   InteractionRegistry,
+  instance as interactionRegistryInstance,
 } from '@civ-clone/core-diplomacy/InteractionRegistry';
 import {
-  instance as playerResearchRegistryInstance,
   PlayerResearchRegistry,
+  instance as playerResearchRegistryInstance,
 } from '@civ-clone/core-science/PlayerResearchRegistry';
-import Resolved from '@civ-clone/core-diplomacy/Rules/Proposal/Resolved';
+import Accept from '@civ-clone/core-diplomacy/Proposal/Accept';
+import Advance from '@civ-clone/core-science/Advance';
+import ChoiceMeta from '@civ-clone/core-client/ChoiceMeta';
 import Criterion from '@civ-clone/core-rule/Criterion';
 import Decline from '@civ-clone/core-diplomacy/Proposal/Decline';
-import Initiate from '@civ-clone/core-diplomacy/Negotiation/Initiate';
 import Effect from '@civ-clone/core-rule/Effect';
-import Terminate from '@civ-clone/core-diplomacy/Negotiation/Terminate';
-import Accept from '@civ-clone/core-diplomacy/Proposal/Accept';
-import Peace from '@civ-clone/base-diplomacy-declaration-peace/Peace';
+import ExchangeKnowledge from '@civ-clone/library-diplomacy/Proposals/ExchangeKnowledge';
+import { IConstructor } from '@civ-clone/core-registry/Registry';
+import Initiate from '@civ-clone/core-diplomacy/Negotiation/Initiate';
 import Never from '@civ-clone/core-diplomacy/Expiries/Never';
 import OfferPeace from '@civ-clone/library-diplomacy/Proposals/OfferPeace';
-import ExchangeKnowledge from '@civ-clone/library-diplomacy/Proposals/ExchangeKnowledge';
+import Peace from '@civ-clone/base-diplomacy-declaration-peace/Peace';
+import Resolved from '@civ-clone/core-diplomacy/Rules/Proposal/Resolved';
+import Terminate from '@civ-clone/core-diplomacy/Negotiation/Terminate';
+
+declare global {
+  interface ChoiceMetaDataMap {
+    'diplomacy.exchange-knowledge': typeof Advance;
+  }
+}
 
 export const getRules = (
   ruleRegistry: RuleRegistry = ruleRegistryInstance,
   interactionRegistry: InteractionRegistry = interactionRegistryInstance,
-  playerResearchRegistry: PlayerResearchRegistry = playerResearchRegistryInstance
+  playerResearchRegistry: PlayerResearchRegistry = playerResearchRegistryInstance,
+  clientRegistry: ClientRegistry = clientRegistryInstance
 ) => [
   new Resolved(
     new Criterion(
       (resolution, proposal) =>
         resolution instanceof Decline && proposal instanceof Initiate
     ),
-    new Effect((resolution, proposal) =>
+    new Effect(async (resolution, proposal) =>
       proposal
         .negotiation()
         .proceed(
@@ -45,7 +59,7 @@ export const getRules = (
       (resolution, proposal) =>
         resolution instanceof Accept && proposal instanceof OfferPeace
     ),
-    new Effect((resolution, proposal) =>
+    new Effect(async (resolution, proposal) =>
       interactionRegistry.register(
         new Peace(...proposal.players(), new Never(), ruleRegistry)
       )
@@ -56,7 +70,8 @@ export const getRules = (
       (resolution, proposal) =>
         resolution instanceof Accept && proposal instanceof ExchangeKnowledge
     ),
-    new Effect((resolution, proposal) => {
+    new Effect(async (resolution, proposal) => {
+      // resolution.by() is the person that agreed to the exchange
       const byResearch = playerResearchRegistry.getByPlayer(resolution.by()),
         forResearch = playerResearchRegistry.getByPlayer(resolution.for()[0]),
         forAdvances = byResearch
@@ -72,17 +87,25 @@ export const getRules = (
               !byResearch.completed(completedAdvance.sourceClass())
           );
 
-      // TODO: client.chooseFromList()
-      // const byClient = clientRegistry.getByPlayer(resolution.by()),
-      //   byAdvance = await byClient.chooseFromList(new ChoiceMeta(byAdvances.map((advance) => advance.sourceClass()), 'diplomacy.exchange-knowledge', resolution)),
-      //   forClient = clientRegistry.getByPlayer(resolution.for()[0]),
-      //   forAdvance = await forClient.chooseFromList(new ChoiceMeta(forAdvances.map((advance) => advance.sourceClass()), 'diplomacy.exchange-knowledge', resolution));
-      //
-      // byResearch.add(byAdvance);
-      // forResearch.add(forAdvance);
+      const byClient = clientRegistry.getByPlayer(resolution.by()),
+        byAdvance = await byClient.chooseFromList(
+          new ChoiceMeta(
+            byAdvances.map((advance) => advance.sourceClass()),
+            'diplomacy.exchange-knowledge',
+            resolution
+          )
+        ),
+        forClient = clientRegistry.getByPlayer(resolution.for()[0]),
+        forAdvance = await forClient.chooseFromList(
+          new ChoiceMeta(
+            forAdvances.map((advance) => advance.sourceClass()),
+            'diplomacy.exchange-knowledge',
+            resolution
+          )
+        );
 
-      byResearch.addAdvance(byAdvances[0].sourceClass());
-      forResearch.addAdvance(forAdvances[0].sourceClass());
+      byResearch.addAdvance(byAdvance);
+      forResearch.addAdvance(forAdvance);
     })
   ),
 ];

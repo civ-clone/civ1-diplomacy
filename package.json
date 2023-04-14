@@ -31,9 +31,11 @@
     "typescript": "^4.9.5"
   },
   "dependencies": {
+    "@civ-clone/base-city-yield-gold": "^0.1.0",
     "@civ-clone/base-diplomacy-declaration-peace": "^0.1.0",
     "@civ-clone/base-diplomacy-declaration-war": "^0.1.0",
     "@civ-clone/base-diplomacy-interaction-contact": "^0.1.0",
+    "@civ-clone/core-client": "^0.1.2",
     "@civ-clone/core-diplomacy": "^0.1.0",
     "@civ-clone/core-player": "^0.1.7",
     "@civ-clone/core-registry": "^0.1.1",
