@@ -204,7 +204,14 @@ const getRules = (ruleRegistry = RuleRegistry_1.instance, interactionRegistry = 
         [
             [Dialogue_1.default, lastInteractionWasDialogueWithNamespace('handover')],
             [
-                [dialogueAction(Dialogue_1.default, 'welcome-peace')],
+                [
+                    new Criterion_1.default((negotiation) => hasPeaceTreaty(...negotiation.players())),
+                    dialogueAction(Dialogue_1.default, 'welcome-peace'),
+                ],
+                [
+                    new Criterion_1.default((negotiation) => !hasPeaceTreaty(...negotiation.players())),
+                    dialogueAction(Dialogue_1.default, 'grateful-discussion'),
+                ],
                 [
                     new Effect_1.default((negotiation) => new DemandTribute_1.default(new Gold_1.default(50), getNextBy(negotiation), negotiation, ruleRegistry)),
                 ],

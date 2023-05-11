@@ -353,7 +353,18 @@ export const getRules = (
       [
         [Dialogue, lastInteractionWasDialogueWithNamespace('handover')],
         [
-          [dialogueAction(Dialogue, 'welcome-peace')],
+          [
+            new Criterion((negotiation) =>
+              hasPeaceTreaty(...negotiation.players())
+            ),
+            dialogueAction(Dialogue, 'welcome-peace'),
+          ],
+          [
+            new Criterion(
+              (negotiation) => !hasPeaceTreaty(...negotiation.players())
+            ),
+            dialogueAction(Dialogue, 'grateful-discussion'),
+          ],
           [
             new Effect(
               (negotiation) =>
