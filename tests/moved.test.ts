@@ -1,6 +1,6 @@
 import Effect from '@civ-clone/core-rule/Effect';
 import FillGenerator from '@civ-clone/simple-world-generator/tests/lib/FillGenerator';
-import { Grassland } from '@civ-clone/civ1-world/Terrains';
+import { Grassland } from '@civ-clone/base-terrain-grassland/Grassland';
 import InteractionRegistry from '@civ-clone/core-diplomacy/InteractionRegistry';
 import { Move } from '@civ-clone/civ1-unit/Actions';
 import MovementCost from '@civ-clone/core-unit/Rules/MovementCost';

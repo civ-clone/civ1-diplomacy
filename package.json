@@ -35,6 +35,7 @@
     "@civ-clone/base-diplomacy-declaration-peace": "^0.1.0",
     "@civ-clone/base-diplomacy-declaration-war": "^0.1.0",
     "@civ-clone/base-diplomacy-interaction-contact": "^0.1.0",
+    "@civ-clone/base-terrain-grassland": "^0.1.0",
     "@civ-clone/core-client": "^0.1.2",
     "@civ-clone/core-diplomacy": "^0.1.0",
     "@civ-clone/core-engine": "^0.1.0",
