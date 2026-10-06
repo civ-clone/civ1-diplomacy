@@ -1,3 +1,4 @@
+import cityCaptured from './Rules/City/captured';
 import declarationExpired from './Rules/Declaration/expired';
 import negotiationInteraction from './Rules/Negotiation/interaction';
 import negotiationStep from './Rules/Negotiation/step';
@@ -7,6 +8,7 @@ import { Game, defaultGame } from '@civ-clone/core-game';
 
 export const register = (game: Game): void =>
   game.rules.register(
+    ...cityCaptured(game.interactions),
     ...declarationExpired(game.engine),
     ...negotiationInteraction(game.interactions),
     ...negotiationStep(game.rules, game.interactions, game.playerResearch),
