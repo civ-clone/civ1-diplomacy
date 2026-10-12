@@ -33,6 +33,7 @@ import ResolutionValue from '@civ-clone/core-diplomacy/Proposal/Resolution';
 import Step from '@civ-clone/core-diplomacy/Rules/Negotiation/Step';
 import Terminate from '@civ-clone/core-diplomacy/Negotiation/Terminate';
 import Interaction from '@civ-clone/core-diplomacy/Rules/Negotiation/Interaction';
+import isPacified from '@civ-clone/library-diplomacy/lib/isPacified';
 
 export const getRules = (
   ruleRegistry: RuleRegistry = ruleRegistryInstance,
@@ -81,6 +82,16 @@ export const getRules = (
       negotiation.lastInteraction() === null
         ? negotiation.players()[0]
         : negotiation.lastInteraction()!.for()[0],
+    // Whether the player to make the next step is pacified towards the other (`Pacified`), so it makes no demands of
+    //  it (civ-clone/web-renderer#30).
+    nextByIsPacified = (negotiation: Negotiation): boolean => {
+      const nextBy = getNextBy(negotiation),
+        [other] = negotiation
+          .players()
+          .filter((player: Player): boolean => player !== nextBy);
+
+      return other !== undefined && isPacified(nextBy, other, ruleRegistry);
+    },
     proposalAction = (ActionType: IConstructor<IAction>) =>
       new Effect(
         (negotiation) =>
@@ -366,6 +377,10 @@ export const getRules = (
             dialogueAction(Dialogue, 'grateful-discussion'),
           ],
           [
+            new Criterion(
+              (negotiation: Negotiation): boolean =>
+                !nextByIsPacified(negotiation)
+            ),
             new Effect(
               (negotiation) =>
                 new DemandTribute(

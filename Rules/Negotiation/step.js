@@ -19,6 +19,7 @@ const Peace_1 = require("@civ-clone/base-diplomacy-declaration-peace/Peace");
 const Resolution_1 = require("@civ-clone/core-diplomacy/Proposal/Resolution");
 const Step_1 = require("@civ-clone/core-diplomacy/Rules/Negotiation/Step");
 const Terminate_1 = require("@civ-clone/core-diplomacy/Negotiation/Terminate");
+const isPacified_1 = require("@civ-clone/library-diplomacy/lib/isPacified");
 const getRules = (ruleRegistry = RuleRegistry_1.instance, interactionRegistry = InteractionRegistry_1.instance, playerResearchRegistry = PlayerResearchRegistry_1.instance) => {
     const dialogueNamespaceMatches = (dialogue, ...namespaces) => namespaces.includes(dialogue.key().split('.')[0]), onlyOncePerNegotiation = (InteractionType) => 
     // if it's a `Resolution` it could be used many times in a discussion
@@ -32,7 +33,15 @@ const getRules = (ruleRegistry = RuleRegistry_1.instance, interactionRegistry = 
         negotiation.lastInteraction().proposal() instanceof Dialogue_1.default &&
         dialogueNamespaceMatches(negotiation.lastInteraction().proposal(), ...keys)), getNextBy = (negotiation) => negotiation.lastInteraction() === null
         ? negotiation.players()[0]
-        : negotiation.lastInteraction().for()[0], proposalAction = (ActionType) => new Effect_1.default((negotiation) => new ActionType(getNextBy(negotiation), negotiation, ruleRegistry)), resolutionAction = (ActionType) => new Effect_1.default((negotiation) => new ActionType(getNextBy(negotiation), negotiation.lastInteraction(), ruleRegistry)), dialogueAction = (ActionType, key) => new Effect_1.default((negotiation) => new ActionType(getNextBy(negotiation), key, negotiation, ruleRegistry)), lastInteractionWasDialogueWithNamespace = (namespace) => new Criterion_1.default((negotiation) => {
+        : negotiation.lastInteraction().for()[0], 
+    // Whether the player to make the next step is pacified towards the other (`Pacified`), so it makes no demands of
+    //  it (civ-clone/web-renderer#30).
+    nextByIsPacified = (negotiation) => {
+        const nextBy = getNextBy(negotiation), [other] = negotiation
+            .players()
+            .filter((player) => player !== nextBy);
+        return other !== undefined && (0, isPacified_1.default)(nextBy, other, ruleRegistry);
+    }, proposalAction = (ActionType) => new Effect_1.default((negotiation) => new ActionType(getNextBy(negotiation), negotiation, ruleRegistry)), resolutionAction = (ActionType) => new Effect_1.default((negotiation) => new ActionType(getNextBy(negotiation), negotiation.lastInteraction(), ruleRegistry)), dialogueAction = (ActionType, key) => new Effect_1.default((negotiation) => new ActionType(getNextBy(negotiation), key, negotiation, ruleRegistry)), lastInteractionWasDialogueWithNamespace = (namespace) => new Criterion_1.default((negotiation) => {
         const lastInteraction = negotiation.lastInteraction();
         return (lastInteraction instanceof Dialogue_1.default &&
             dialogueNamespaceMatches(lastInteraction, namespace));
@@ -213,6 +222,7 @@ const getRules = (ruleRegistry = RuleRegistry_1.instance, interactionRegistry = 
                     dialogueAction(Dialogue_1.default, 'grateful-discussion'),
                 ],
                 [
+                    new Criterion_1.default((negotiation) => !nextByIsPacified(negotiation)),
                     new Effect_1.default((negotiation) => new DemandTribute_1.default(new Gold_1.default(50), getNextBy(negotiation), negotiation, ruleRegistry)),
                 ],
             ],

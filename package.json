@@ -48,6 +48,6 @@
     "@civ-clone/core-science": "^0.1.4",
     "@civ-clone/core-unit": "^0.1.0",
     "@civ-clone/core-world": "^0.1.0",
-    "@civ-clone/library-diplomacy": "^0.1.0"
+    "@civ-clone/library-diplomacy": "^0.1.3"
   }
 }
