@@ -1,8 +1,5 @@
-import { ClientRegistry } from '@civ-clone/core-client/ClientRegistry';
-import { RuleRegistry } from '@civ-clone/core-rule/RuleRegistry';
-import { InteractionRegistry } from '@civ-clone/core-diplomacy/InteractionRegistry';
-import { PlayerResearchRegistry } from '@civ-clone/core-science/PlayerResearchRegistry';
 import Advance from '@civ-clone/core-science/Advance';
+import Dependencies from '../../lib/Dependencies';
 import Resolved from '@civ-clone/core-diplomacy/Rules/Proposal/Resolved';
 declare global {
   interface ChoiceMetaDataMap {
@@ -10,9 +7,7 @@ declare global {
   }
 }
 export declare const getRules: (
-  ruleRegistry?: RuleRegistry,
-  interactionRegistry?: InteractionRegistry,
-  playerResearchRegistry?: PlayerResearchRegistry,
-  clientRegistry?: ClientRegistry
+  dependencies: Dependencies,
+  random: () => number
 ) => Resolved[];
 export default getRules;
