@@ -45,7 +45,9 @@ const meet = async (
       last = negotiation.lastInteraction(),
       next = last === null ? computer : last.for()[0],
       chosen =
-        next === human && setup.dependencies.clientRegistry.getBy('player', human)[0].constructor.name === 'Object'
+        next === human &&
+        setup.dependencies.clientRegistry.getBy('player', human)[0].constructor
+          .name === 'Object'
           ? choose(steps)
           : steps.find((action) => action instanceof Accept) ?? steps[0];
 
@@ -68,7 +70,8 @@ const meet = async (
 const pick =
   (...wanted: (new (...args: any[]) => IAction)[]) =>
   (steps: IAction[]): IAction =>
-    steps.find((action) => wanted.some((Wanted) => action instanceof Wanted)) ?? steps[0];
+    steps.find((action) => wanted.some((Wanted) => action instanceof Wanted)) ??
+    steps[0];
 
 // Receives the emissary, then turns everything down.
 const refuseAll = (steps: IAction[]): IAction =>
@@ -80,16 +83,29 @@ const refuseAll = (steps: IAction[]): IAction =>
   steps.find((action) => action instanceof Decline) ??
   steps[0];
 
-const active = (setup: Setup, Type: new (...args: any[]) => any, a: Player, b: Player) =>
+const active = (
+  setup: Setup,
+  Type: new (...args: any[]) => any,
+  a: Player,
+  b: Player
+) =>
   setup.interactionRegistry
     .getByPlayers(a, b)
-    .filter((interaction) => interaction instanceof Type && (interaction as any).active());
+    .filter(
+      (interaction) =>
+        interaction instanceof Type && (interaction as any).active()
+    );
 
 // A computer player much stronger than the human on the land they share (see `stance.test`): it demands $100.
 const bully = (humanGold = 500) =>
   position([
     { cities: [1, 1], units: [{ on: 1, attack: 20, defence: 5 }] },
-    { human: true, gold: humanGold, cities: [1], units: [{ on: 1, attack: 4, defence: 4 }] },
+    {
+      human: true,
+      gold: humanGold,
+      cities: [1],
+      units: [{ on: 1, attack: 4, defence: 4 }],
+    },
   ]);
 
 describe('meeting', (): void => {
@@ -97,21 +113,33 @@ describe('meeting', (): void => {
     const setup = bully(),
       { log } = await meet(setup, pick(Accept));
 
-    expect(log.slice(0, 4)).eql(['Initiate', 'Accept', 'Dialogue:welcome.no-peace', 'Acknowledge']);
+    expect(log.slice(0, 4)).eql([
+      'Initiate',
+      'Accept',
+      'Dialogue:welcome.no-peace',
+      'Acknowledge',
+    ]);
     expect(log[4]).equal('DemandTribute');
 
     const refused = bully(),
       result = await meet(refused, refuseAll);
 
     expect(result.log).include('Dialogue:declare-war.rejected');
-    expect(active(refused, War, ...(refused.players as [Player, Player]))).length(1);
+    expect(
+      active(refused, War, ...(refused.players as [Player, Player]))
+    ).length(1);
   });
 
   it('takes the tribute and leaves in peace when it is paid', async (): Promise<void> => {
     const setup = bully();
 
     setup.interactionRegistry.register(
-      new Peace(setup.players[0], setup.players[1], new Never(), setup.ruleRegistry)
+      new Peace(
+        setup.players[0],
+        setup.players[1],
+        new Never(),
+        setup.ruleRegistry
+      )
     );
 
     // At peace and much the stronger: it demands, and is paid.
@@ -128,23 +156,41 @@ describe('meeting', (): void => {
   it('sweetens a refused peace offer (an advance, then gold), then mobilizes', async (): Promise<void> => {
     // Afraid (fear 6: attack 9 × 2 / (defence 2 + 1)) and at war: it offers peace.
     const setup = position([
-        { gold: 200, advances: [Bronze], cities: [0, 0], units: [{ on: 0, attack: 1, defence: 2 }] },
-        { human: true, advances: [Wheel], units: [{ on: 0, attack: 9, defence: 1 }] },
+        {
+          gold: 200,
+          advances: [Bronze],
+          cities: [0, 0],
+          units: [{ on: 0, attack: 1, defence: 2 }],
+        },
+        {
+          human: true,
+          advances: [Wheel],
+          units: [{ on: 0, attack: 9, defence: 1 }],
+        },
       ]),
       { log } = await meet(setup, refuseAll);
 
-    expect(log.filter((entry) => entry === 'OfferPeace' || entry === 'OfferPeaceWithGift')).eql([
-      'OfferPeace',
-      'OfferPeaceWithGift',
-      'OfferPeaceWithGift',
-    ]);
+    expect(
+      log.filter(
+        (entry) => entry === 'OfferPeace' || entry === 'OfferPeaceWithGift'
+      )
+    ).eql(['OfferPeace', 'OfferPeaceWithGift', 'OfferPeaceWithGift']);
     expect(log).include('Dialogue:declare-war.mobilize');
   });
 
   it('hands over the sweetener when the offer is accepted', async (): Promise<void> => {
     const setup = position([
-      { gold: 200, advances: [Bronze], cities: [0, 0], units: [{ on: 0, attack: 1, defence: 2 }] },
-      { human: true, advances: [Wheel], units: [{ on: 0, attack: 9, defence: 1 }] },
+      {
+        gold: 200,
+        advances: [Bronze],
+        cities: [0, 0],
+        units: [{ on: 0, attack: 1, defence: 2 }],
+      },
+      {
+        human: true,
+        advances: [Wheel],
+        units: [{ on: 0, attack: 9, defence: 1 }],
+      },
     ]);
     let offers = 0;
 
@@ -174,7 +220,12 @@ describe('meeting', (): void => {
     ]);
 
     setup.interactionRegistry.register(
-      new Peace(setup.players[0], setup.players[1], new Never(), setup.ruleRegistry)
+      new Peace(
+        setup.players[0],
+        setup.players[1],
+        new Never(),
+        setup.ruleRegistry
+      )
     );
 
     const { log } = await meet(setup, pick(DemandTribute, Accept));
@@ -187,23 +238,43 @@ describe('meeting', (): void => {
   it('keeps a peace it means to drop, as a sham', async (): Promise<void> => {
     const setup = position([
       { cities: [1, 1], units: [{ on: 1, attack: 20, defence: 5 }] },
-      { human: true, gold: 500, cities: [1], units: [{ on: 1, attack: 4, defence: 40 }] },
+      {
+        human: true,
+        gold: 500,
+        cities: [1],
+        units: [{ on: 1, attack: 4, defence: 40 }],
+      },
     ]);
 
     setup.interactionRegistry.register(
-      new Peace(setup.players[0], setup.players[1], new Never(), setup.ruleRegistry)
+      new Peace(
+        setup.players[0],
+        setup.players[1],
+        new Never(),
+        setup.ruleRegistry
+      )
     );
 
     await meet(setup, pick(Terminate));
 
-    expect(active(setup, ShamPeace, setup.players[0], setup.players[1])).length(1);
+    expect(active(setup, ShamPeace, setup.players[0], setup.players[1])).length(
+      1
+    );
   });
 
   it('lets two computer players settle it between them', async (): Promise<void> => {
     // Neither can take on the other where both are: peace.
     const setup = position([
-        { advances: [Bronze], cities: [0], units: [{ on: 0, attack: 1, defence: 5 }] },
-        { advances: [Wheel], cities: [0], units: [{ on: 0, attack: 1, defence: 5 }] },
+        {
+          advances: [Bronze],
+          cities: [0],
+          units: [{ on: 0, attack: 1, defence: 5 }],
+        },
+        {
+          advances: [Wheel],
+          cities: [0],
+          units: [{ on: 0, attack: 1, defence: 5 }],
+        },
       ]),
       { log } = await meet(setup, (steps) => steps[0]);
 

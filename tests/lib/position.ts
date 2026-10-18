@@ -11,7 +11,7 @@ import Pacified from '@civ-clone/library-diplomacy/Rules/Player/Pacified';
 import Player from '@civ-clone/core-player/Player';
 import Rank from '@civ-clone/core-power/Rules/Rank';
 import RuleRegistry from '@civ-clone/core-rule/RuleRegistry';
-import Strength from '@civ-clone/core-power/Rules/Strength';
+import MilitaryStrength from '@civ-clone/core-power/Rules/MilitaryStrength';
 import Tile from '@civ-clone/core-world/Tile';
 import Unit from '@civ-clone/core-unit/Unit';
 
@@ -24,7 +24,12 @@ export interface Side {
   mood?: -1 | 0 | 1;
   republic?: boolean;
   advances?: (typeof Advance)[];
-  units?: { on: number | null; attack: number; defence: number; nuclear?: boolean }[];
+  units?: {
+    on: number | null;
+    attack: number;
+    defence: number;
+    nuclear?: boolean;
+  }[];
   cities?: number[];
 }
 
@@ -53,9 +58,14 @@ export const position = (
     masses = tiles.map((landMassTiles) => new LandMass(landMassTiles)),
     sea = {} as Tile,
     players = sides.map(() => new Player(ruleRegistry)),
-    gold = new Map(players.map((player, index) => [player, sides[index].gold ?? 0])),
+    gold = new Map(
+      players.map((player, index) => [player, sides[index].gold ?? 0])
+    ),
     advances = new Map(
-      players.map((player, index) => [player, [...(sides[index].advances ?? [])]])
+      players.map((player, index) => [
+        player,
+        [...(sides[index].advances ?? [])],
+      ])
     ),
     units = new Map(
       players.map((player, index) => [
@@ -81,13 +91,15 @@ export const position = (
     );
 
   ruleRegistry.register(
-    new Strength(
+    new MilitaryStrength(
       new Effect((unit: Unit) => ({
         attack: unit.attack().value(),
         defence: unit.defence().value(),
       }))
     ),
-    new Rank(new Effect((player: Player) => sides[players.indexOf(player)].rank ?? 0)),
+    new Rank(
+      new Effect((player: Player) => sides[players.indexOf(player)].rank ?? 0)
+    ),
     ...pacified.map(
       ([who, towards]) =>
         new Pacified(
@@ -163,16 +175,26 @@ export const position = (
       getByPlayerAndType: (player: Player) => ({
         value: () => gold.get(player)!,
         add: (value: number) => gold.set(player, gold.get(player)! + value),
-        subtract: (value: number) => gold.set(player, gold.get(player)! - value),
+        subtract: (value: number) =>
+          gold.set(player, gold.get(player)! - value),
       }),
     },
     ruleRegistry,
-    traitRegistry: { getByLeader: (leader: unknown) => traits(leader as Player) },
+    traitRegistry: {
+      getByLeader: (leader: unknown) => traits(leader as Player),
+    },
     turn: { value: () => turn },
     unitRegistry: { getByPlayer: (player: Player) => units.get(player) ?? [] },
   } as unknown as Dependencies;
 
-  return { advances, dependencies, gold, interactionRegistry, players, ruleRegistry };
+  return {
+    advances,
+    dependencies,
+    gold,
+    interactionRegistry,
+    players,
+    ruleRegistry,
+  };
 };
 
 export default position;

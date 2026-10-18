@@ -1,6 +1,6 @@
 import { Aggressive, Friendly } from '@civ-clone/civ1-civilization/Traits';
 import { Democracy, Republic } from '@civ-clone/civ1-government/Governments';
-import { IStrength } from '@civ-clone/core-power/Rules/Strength';
+import { IStrength } from '@civ-clone/core-power/Rules/MilitaryStrength';
 import City from '@civ-clone/core-city/City';
 import Contact from '@civ-clone/base-diplomacy-interaction-contact/Contact';
 import Dependencies from './Dependencies';
@@ -17,7 +17,7 @@ import { militaryPower } from '@civ-clone/core-power/lib/strength';
 import { rankings } from '@civ-clone/core-power/lib/rank';
 import { strength } from '@civ-clone/core-power/lib/strength';
 
-// What a player has on one land mass: its cities, and its units' attack and defence (`core-power`'s `Strength`).
+// What a player has on one land mass: its cities, and its units' attack and defence (`core-power`'s `MilitaryStrength`).
 //  v474.05 keeps the same per continent for each player (OpenCivOne `AIEngine.cs` L44-81). Its fields are named the
 //  other way round, `Attack` holding the defence and `Defense` the attack; these hold what they say.
 export interface Presence extends IStrength {

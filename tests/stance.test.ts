@@ -55,7 +55,12 @@ describe('stance', (): void => {
   it("cuts the tribute to the other's gold", (): void => {
     const { dependencies, players } = position([
       { cities: [1, 1], units: [{ on: 1, attack: 20, defence: 5 }] },
-      { human: true, gold: 60, cities: [1], units: [{ on: 1, attack: 4, defence: 4 }] },
+      {
+        human: true,
+        gold: 60,
+        cities: [1],
+        units: [{ on: 1, attack: 4, defence: 4 }],
+      },
     ]);
 
     expect(stance(dependencies, players[0], players[1]).tribute).equal(50);
@@ -63,10 +68,17 @@ describe('stance', (): void => {
 
   it('demands at least ten times its ranking for a grudge, then doubles it', (): void => {
     // Ranked second of two (6), so at least 60 rather than 16; doubled, 120; on King, 120 × 4 / 32 = 15 fifties.
-    const { dependencies, interactionRegistry, players, ruleRegistry } = position([
-      { rank: 0, cities: [1, 1], units: [{ on: 1, attack: 20, defence: 5 }] },
-      { rank: 10, human: true, gold: 2000, cities: [1], units: [{ on: 1, attack: 4, defence: 4 }] },
-    ]);
+    const { dependencies, interactionRegistry, players, ruleRegistry } =
+      position([
+        { rank: 0, cities: [1, 1], units: [{ on: 1, attack: 20, defence: 5 }] },
+        {
+          rank: 10,
+          human: true,
+          gold: 2000,
+          cities: [1],
+          units: [{ on: 1, attack: 4, defence: 4 }],
+        },
+      ]);
 
     interactionRegistry.register(
       new Vendetta(players[0], players[1], new Never(), ruleRegistry)
@@ -82,7 +94,12 @@ describe('stance', (): void => {
     const { dependencies, players } = position(
       [
         { cities: [1, 1], units: [{ on: 1, attack: 20, defence: 5 }] },
-        { human: true, gold: 500, cities: [1], units: [{ on: 1, attack: 4, defence: 4 }] },
+        {
+          human: true,
+          gold: 500,
+          cities: [1],
+          units: [{ on: 1, attack: 4, defence: 4 }],
+        },
       ],
       { pacified: [[0, 1]] }
     );
@@ -92,12 +109,20 @@ describe('stance', (): void => {
 
   it('backs down from a stronger treaty partner, and means to drop the treaty later', (): void => {
     // Attack 20 and defence 4 against 40: a third as strong or more, but the weaker.
-    const { dependencies, interactionRegistry, players, ruleRegistry } = position([
-      { cities: [1, 1], units: [{ on: 1, attack: 20, defence: 4 }] },
-      { human: true, gold: 500, cities: [1], units: [{ on: 1, attack: 4, defence: 36 }] },
-    ]);
+    const { dependencies, interactionRegistry, players, ruleRegistry } =
+      position([
+        { cities: [1, 1], units: [{ on: 1, attack: 20, defence: 4 }] },
+        {
+          human: true,
+          gold: 500,
+          cities: [1],
+          units: [{ on: 1, attack: 4, defence: 36 }],
+        },
+      ]);
 
-    interactionRegistry.register(new Peace(players[0], players[1], new Never(), ruleRegistry));
+    interactionRegistry.register(
+      new Peace(players[0], players[1], new Never(), ruleRegistry)
+    );
 
     const result = stance(dependencies, players[0], players[1]);
 
@@ -108,20 +133,37 @@ describe('stance', (): void => {
 
   it('wants peace with enemies about, and a Friendly leader the more so', (): void => {
     // An enemy (met, no treaty) stronger than it counts twice; a Friendly leader once more: 3 > 1.
-    const { dependencies, interactionRegistry, players, ruleRegistry } = position([
-      { mood: -1, cities: [1, 1], units: [{ on: 1, attack: 20, defence: 5 }] },
-      { human: true, gold: 500, cities: [1], units: [{ on: 1, attack: 4, defence: 4 }] },
-      { units: [{ on: 2, attack: 30, defence: 30 }] },
-    ]);
+    const { dependencies, interactionRegistry, players, ruleRegistry } =
+      position([
+        {
+          mood: -1,
+          cities: [1, 1],
+          units: [{ on: 1, attack: 20, defence: 5 }],
+        },
+        {
+          human: true,
+          gold: 500,
+          cities: [1],
+          units: [{ on: 1, attack: 4, defence: 4 }],
+        },
+        { units: [{ on: 2, attack: 30, defence: 30 }] },
+      ]);
 
     // Met: a finished negotiation between them, with no treaty.
     interactionRegistry.register(
-      Object.assign(Object.create(require('@civ-clone/core-diplomacy/Negotiation').default.prototype), {
-        isBetween: (...between: unknown[]) =>
-          between.every((player) => player === players[0] || player === players[2]),
-        players: () => [players[0], players[2]],
-        id: () => 'negotiation',
-      })
+      Object.assign(
+        Object.create(
+          require('@civ-clone/core-diplomacy/Negotiation').default.prototype
+        ),
+        {
+          isBetween: (...between: unknown[]) =>
+            between.every(
+              (player) => player === players[0] || player === players[2]
+            ),
+          players: () => [players[0], players[2]],
+          id: () => 'negotiation',
+        }
+      )
     );
 
     const result = stance(dependencies, players[0], players[1], () => 0.9);
