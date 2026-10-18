@@ -1,4 +1,4 @@
-import { IStrength } from '@civ-clone/core-power/Rules/Strength';
+import { IStrength } from '@civ-clone/core-power/Rules/MilitaryStrength';
 import Dependencies from './Dependencies';
 import LandMass from '@civ-clone/core-world/LandMass';
 import Player from '@civ-clone/core-player/Player';
