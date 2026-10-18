@@ -26,7 +26,7 @@ const meetings = new WeakMap<Negotiation, Meeting>();
 
 // The computer pair's decision (OpenCivOne `Segment_2517.cs` `F0_2517_0737`, L821-1000): war if either would go to
 //  war with the other (neither with the owner of the Great Wall, nor from a Republic or Democracy), otherwise peace.
-//  War between two at war already changes nothing.
+//  War between two at war already changes nothing; peace between two at peace still trades advances.
 const computerDecision = (
   dependencies: Dependencies,
   player: Player,
@@ -44,7 +44,8 @@ const computerDecision = (
       : 'nothing';
   }
 
-  return atPeace(dependencies, player, other) ? 'nothing' : 'peace';
+  // Peace, or more of it: v474.05 swaps an advance each way at every such meeting, treaty or not (`F0_2517_0cef`).
+  return 'peace';
 };
 
 // The meeting for `negotiation`, worked out the first time it's asked for: that is when the coin is tossed and a
