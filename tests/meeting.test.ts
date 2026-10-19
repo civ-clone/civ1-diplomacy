@@ -21,8 +21,10 @@ import step from '../Rules/Negotiation/step';
 
 type Setup = ReturnType<typeof position>;
 
-// Runs a meeting the way the clients do: whoever the last step was for picks the next. The computer player takes the
-//  only step it's offered (accepting where it may choose); the human's `choose` picks from what it's offered.
+// Runs a meeting the way the clients do: the player whose steps are on offer picks the next, or, when they're more than
+//  one player's, whoever the last step was for (civ-clone/web-renderer#450: after the hand-over, the human's OK is for
+//  the computer player, but the next move is the human's). The computer player takes the only step it's offered
+//  (accepting where it may choose); the human's `choose` picks from what it's offered.
 const meet = async (
   setup: Setup,
   choose: (steps: IAction[]) => IAction,
@@ -43,7 +45,13 @@ const meet = async (
   for (let i = 0; i < 40 && !negotiation.terminated(); i++) {
     const steps = negotiation.nextSteps(),
       last = negotiation.lastInteraction(),
-      next = last === null ? computer : last.for()[0],
+      actors = Array.from(new Set(steps.map((step) => step.by()))),
+      next =
+        actors.length === 1
+          ? actors[0]
+          : last === null
+          ? computer
+          : last.for()[0],
       chosen =
         next === human &&
         setup.dependencies.clientRegistry.getBy('player', human)[0].constructor
@@ -228,9 +236,16 @@ describe('meeting', (): void => {
       )
     );
 
-    const { log } = await meet(setup, pick(DemandTribute, Accept));
+    // The human, not the computer player, is offered the demand and the goodbye after the hand-over.
+    const offered: string[][] = [],
+      { log } = await meet(setup, (steps: IAction[]): IAction => {
+        offered.push(steps.map((step) => step.constructor.name));
+
+        return pick(DemandTribute, Accept)(steps);
+      });
 
     expect(log).include('Dialogue:handover');
+    expect(offered).deep.include(['DemandTribute', 'Terminate']);
     expect(log.filter((entry) => entry === 'DemandTribute')).length(1);
     expect(setup.gold.get(setup.players[1])).equal(100);
   });
