@@ -2,6 +2,7 @@ import { cityCount, gold, republican } from '../../lib/standing';
 import Accept from '@civ-clone/core-diplomacy/Proposal/Accept';
 import Acknowledge from '@civ-clone/core-diplomacy/Proposal/Acknowledge';
 import Advance from '@civ-clone/core-science/Advance';
+import AdvanceTaken from '../../Dialogues/AdvanceTaken';
 import CancelTreaty from '@civ-clone/library-diplomacy/Proposals/CancelTreaty';
 import Criterion from '@civ-clone/core-rule/Criterion';
 import Decline from '@civ-clone/core-diplomacy/Proposal/Decline';
@@ -23,6 +24,7 @@ import Step from '@civ-clone/core-diplomacy/Rules/Negotiation/Step';
 import Terminate from '@civ-clone/core-diplomacy/Negotiation/Terminate';
 import { hasVendetta } from '@civ-clone/library-diplomacy/lib/holds';
 import { meetingFor } from '../../lib/meeting';
+import { takenBy } from '../../lib/exchanged';
 
 type Next = (negotiation: Negotiation) => IAction | null;
 
@@ -104,6 +106,12 @@ export const getRules = (
         namespaces.includes((action.proposal() as Dialogue).key().split('.')[0])
       );
     },
+    // Whether the last step was `player`'s dialogue `key`, still unanswered.
+    justSaid = (negotiation: Negotiation, key: string): boolean => {
+      const action = last(negotiation);
+
+      return action instanceof Dialogue && action.key() === key;
+    },
     advancesLacked = (from: Player, by: Player): Advance[] => {
       const byResearch = playerResearchRegistry.getByPlayer(by);
 
@@ -137,7 +145,8 @@ export const getRules = (
         theirs.length > 0 &&
         ours.length > 0
       ) {
-        return new ExchangeKnowledge(theirs, player, negotiation, ruleRegistry);
+        // What it offers: what it knows and the other doesn't (civ-clone/web-renderer#453).
+        return new ExchangeKnowledge(ours, player, negotiation, ruleRegistry);
       }
 
       // A call to cancel a treaty with `player`'s enemy (L853-930).
@@ -377,9 +386,12 @@ export const getRules = (
           );
         },
       ],
-      // Every dialogue is acknowledged by the player it's said to.
+      // Every dialogue is acknowledged by the player it's said to, but the hand-over: the other answers that with its
+      //  reply, so "You respond..." is where it chooses one (civ-clone/web-renderer#454).
       [
-        (negotiation) => last(negotiation) instanceof Dialogue,
+        (negotiation) =>
+          last(negotiation) instanceof Dialogue &&
+          !justSaid(negotiation, 'handover'),
         (negotiation) =>
           new Acknowledge(
             meeting(negotiation).other,
@@ -387,7 +399,11 @@ export const getRules = (
             ruleRegistry
           ),
       ],
-      [(negotiation) => acknowledged(negotiation, 'welcome'), nextTopic],
+      [
+        (negotiation) =>
+          acknowledged(negotiation, 'welcome', 'exchange-knowledge'),
+        nextTopic,
+      ],
       [
         (negotiation) =>
           acknowledged(
@@ -399,9 +415,9 @@ export const getRules = (
           ),
         (negotiation) => end(negotiation, meeting(negotiation).player),
       ],
-      [(negotiation) => acknowledged(negotiation, 'handover'), handoverDemand],
+      [(negotiation) => justSaid(negotiation, 'handover'), handoverDemand],
       [
-        (negotiation) => acknowledged(negotiation, 'handover'),
+        (negotiation) => justSaid(negotiation, 'handover'),
         (negotiation) => end(negotiation, meeting(negotiation).other),
       ],
       // The computer player's proposals, answered by the other player.
@@ -444,12 +460,25 @@ export const getRules = (
             CancelTreaty,
             DemandTribute
           ),
-        (negotiation) =>
-          (last(negotiation) as Resolution).proposal().by() ===
-          meeting(negotiation).player
+        (negotiation) => {
+          const resolution = last(negotiation) as Resolution,
+            { player } = meeting(negotiation),
+            taken =
+              resolution instanceof Accept &&
+              resolution.proposal() instanceof ExchangeKnowledge
+                ? takenBy(resolution.proposal(), player)
+                : null;
+
+          if (taken !== null) {
+            // It says what it took, then carries on (civ-clone/web-renderer#453).
+            return new AdvanceTaken(player, taken, negotiation, ruleRegistry);
+          }
+
+          return resolution.proposal().by() === player
             ? nextTopic(negotiation)
             : // The other player's demand, answered: the meeting is over.
-              end(negotiation, meeting(negotiation).other),
+              end(negotiation, meeting(negotiation).other);
+        },
       ],
       // The computer player answers the other's demand: it pays if what it would give comes to anything.
       [

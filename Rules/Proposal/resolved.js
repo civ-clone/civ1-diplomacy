@@ -20,6 +20,7 @@ const Vendetta_1 = require("@civ-clone/library-diplomacy/Declarations/Vendetta")
 const Never_1 = require("@civ-clone/core-diplomacy/Expiries/Never");
 const declareWar_2 = require("../../lib/declareWar");
 const meeting_1 = require("../../lib/meeting");
+const exchanged_1 = require("../../lib/exchanged");
 const negotiationOf = (proposal) => proposal.negotiation();
 // What each answer in a meeting does (`Rules/Negotiation/step`).
 const getRules = (dependencies, random) => {
@@ -77,6 +78,8 @@ const getRules = (dependencies, random) => {
             const [by, other] = [resolution.by(), resolution.for()[0]], choose = (player, from) => clientRegistry.getByPlayer(player).chooseFromList(new ChoiceMeta_1.default(advancesLacked(from, player).map((advance) => advance.sourceClass()), 'diplomacy.exchange-knowledge', resolution)), byAdvance = await choose(by, other), otherAdvance = await choose(other, by);
             playerResearchRegistry.getByPlayer(by).addAdvance(byAdvance);
             playerResearchRegistry.getByPlayer(other).addAdvance(otherAdvance);
+            (0, exchanged_1.recordTaken)(proposal, by, byAdvance);
+            (0, exchanged_1.recordTaken)(proposal, other, otherAdvance);
             calm(proposal);
         })),
         new Resolved_1.default('civ1-diplomacy:proposal/resolved/declare-war', acknowledged('declare-war', 'computer.war'), new Effect_1.default(async (resolution, proposal) => (0, declareWar_1.declareWar)(dependencies, proposal.by(), resolution.by()))),

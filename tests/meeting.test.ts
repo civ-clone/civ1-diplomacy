@@ -1,4 +1,6 @@
-import { Bronze, Wheel, position } from './lib/position';
+import { Alphabet, Bronze, Wheel, Writing, position } from './lib/position';
+import AdvanceTaken from '../Dialogues/AdvanceTaken';
+import ExchangeKnowledge from '@civ-clone/library-diplomacy/Proposals/ExchangeKnowledge';
 import Accept from '@civ-clone/core-diplomacy/Proposal/Accept';
 import Decline from '@civ-clone/core-diplomacy/Proposal/Decline';
 import DemandTribute from '@civ-clone/library-diplomacy/Proposals/DemandTribute';
@@ -248,6 +250,60 @@ describe('meeting', (): void => {
     expect(offered).deep.include(['DemandTribute', 'Terminate']);
     expect(log.filter((entry) => entry === 'DemandTribute')).length(1);
     expect(setup.gold.get(setup.players[1])).equal(100);
+  });
+
+  it('offers what it knows for what the other knows, and says what it took (#453)', async (): Promise<void> => {
+    const setup = position([
+        { advances: [Bronze, Wheel], cities: [0] },
+        { human: true, advances: [Alphabet, Writing], cities: [0] },
+      ]),
+      [computer, human] = setup.players,
+      { negotiation } = await meet(setup, pick(Accept));
+
+    const offers = negotiation
+        .interactions()
+        .filter(
+          (action): action is ExchangeKnowledge =>
+            action instanceof ExchangeKnowledge
+        ),
+      taken = negotiation
+        .interactions()
+        .filter(
+          (action): action is AdvanceTaken => action instanceof AdvanceTaken
+        );
+
+    expect(offers.length).greaterThan(0);
+    // The offer names what the computer player knows and the human doesn't.
+    expect(offers[0].advances().map((advance) => advance.sourceClass())).eql([
+      Bronze,
+      Wheel,
+    ]);
+    // Each takes the first it's offered from the other's list, and the computer player says what it took.
+    expect(setup.advances.get(human)).include(Bronze);
+    expect(setup.advances.get(computer)).include(Alphabet);
+    expect(taken.length).equal(offers.length);
+    expect(taken[0].by()).equal(computer);
+    expect(taken[0].advance()).equal(Alphabet);
+  });
+
+  it('takes the reply to "You respond..." as its answer, with no OK first (#454)', async (): Promise<void> => {
+    const setup = position([
+      { gold: 200, cities: [0, 0], units: [{ on: 0, attack: 1, defence: 2 }] },
+      { human: true, units: [{ on: 0, attack: 4, defence: 1 }] },
+    ]);
+
+    setup.interactionRegistry.register(
+      new Peace(
+        setup.players[0],
+        setup.players[1],
+        new Never(),
+        setup.ruleRegistry
+      )
+    );
+
+    const { log } = await meet(setup, pick(Terminate));
+
+    expect(log.slice(log.indexOf('Dialogue:handover') + 1)).eql(['Terminate']);
   });
 
   it('keeps a peace it means to drop, as a sham', async (): Promise<void> => {
