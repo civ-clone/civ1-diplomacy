@@ -4,6 +4,7 @@ exports.getRules = void 0;
 const standing_1 = require("../../lib/standing");
 const Accept_1 = require("@civ-clone/core-diplomacy/Proposal/Accept");
 const Acknowledge_1 = require("@civ-clone/core-diplomacy/Proposal/Acknowledge");
+const AdvanceTaken_1 = require("../../Dialogues/AdvanceTaken");
 const CancelTreaty_1 = require("@civ-clone/library-diplomacy/Proposals/CancelTreaty");
 const Criterion_1 = require("@civ-clone/core-rule/Criterion");
 const Decline_1 = require("@civ-clone/core-diplomacy/Proposal/Decline");
@@ -19,6 +20,7 @@ const Step_1 = require("@civ-clone/core-diplomacy/Rules/Negotiation/Step");
 const Terminate_1 = require("@civ-clone/core-diplomacy/Negotiation/Terminate");
 const holds_1 = require("@civ-clone/library-diplomacy/lib/holds");
 const meeting_1 = require("../../lib/meeting");
+const exchanged_1 = require("../../lib/exchanged");
 // A meeting between a computer player and another, as v474.05 holds one (OpenCivOne `MeetWithKing.cs`
 //  `F6_0000_0000`; civ-clone/web-renderer#427). The computer player, the first of the negotiation's players, came to
 //  talk. It has one thing to say at each turn, in v474.05's order, and the other player answers:
@@ -52,6 +54,11 @@ const getRules = (dependencies, random) => {
         return (action instanceof Acknowledge_1.default &&
             action.proposal() instanceof Dialogue_1.default &&
             namespaces.includes(action.proposal().key().split('.')[0]));
+    }, 
+    // Whether the last step was `player`'s dialogue `key`, still unanswered.
+    justSaid = (negotiation, key) => {
+        const action = last(negotiation);
+        return action instanceof Dialogue_1.default && action.key() === key;
     }, advancesLacked = (from, by) => {
         const byResearch = playerResearchRegistry.getByPlayer(by);
         return playerResearchRegistry
@@ -69,7 +76,8 @@ const getRules = (dependencies, random) => {
             known(other) >= known(player) &&
             theirs.length > 0 &&
             ours.length > 0) {
-            return new ExchangeKnowledge_1.default(theirs, player, negotiation, ruleRegistry);
+            // What it offers: what it knows and the other doesn't (civ-clone/web-renderer#453).
+            return new ExchangeKnowledge_1.default(ours, player, negotiation, ruleRegistry);
         }
         // A call to cancel a treaty with `player`'s enemy (L853-930).
         if (said(negotiation, CancelTreaty_1.default, player).length === 0 &&
@@ -208,19 +216,24 @@ const getRules = (dependencies, random) => {
                 return say(negotiation, stance.atPeace ? 'welcome.peace' : 'welcome.no-peace');
             },
         ],
-        // Every dialogue is acknowledged by the player it's said to.
+        // Every dialogue is acknowledged by the player it's said to, but the hand-over: the other answers that with its
+        //  reply, so "You respond..." is where it chooses one (civ-clone/web-renderer#454).
         [
-            (negotiation) => last(negotiation) instanceof Dialogue_1.default,
+            (negotiation) => last(negotiation) instanceof Dialogue_1.default &&
+                !justSaid(negotiation, 'handover'),
             (negotiation) => new Acknowledge_1.default(meeting(negotiation).other, last(negotiation), ruleRegistry),
         ],
-        [(negotiation) => acknowledged(negotiation, 'welcome'), nextTopic],
+        [
+            (negotiation) => acknowledged(negotiation, 'welcome', 'exchange-knowledge'),
+            nextTopic,
+        ],
         [
             (negotiation) => acknowledged(negotiation, 'computer', 'declare-war', 'farewell', 'accept-peace'),
             (negotiation) => end(negotiation, meeting(negotiation).player),
         ],
-        [(negotiation) => acknowledged(negotiation, 'handover'), handoverDemand],
+        [(negotiation) => justSaid(negotiation, 'handover'), handoverDemand],
         [
-            (negotiation) => acknowledged(negotiation, 'handover'),
+            (negotiation) => justSaid(negotiation, 'handover'),
             (negotiation) => end(negotiation, meeting(negotiation).other),
         ],
         // The computer player's proposals, answered by the other player.
@@ -240,11 +253,20 @@ const getRules = (dependencies, random) => {
         [
             (negotiation) => lastWas(negotiation, Accept_1.default, ExchangeKnowledge_1.default, CancelTreaty_1.default, DemandTribute_1.default) ||
                 lastWas(negotiation, Decline_1.default, ExchangeKnowledge_1.default, CancelTreaty_1.default, DemandTribute_1.default),
-            (negotiation) => last(negotiation).proposal().by() ===
-                meeting(negotiation).player
-                ? nextTopic(negotiation)
-                : // The other player's demand, answered: the meeting is over.
-                    end(negotiation, meeting(negotiation).other),
+            (negotiation) => {
+                const resolution = last(negotiation), { player } = meeting(negotiation), taken = resolution instanceof Accept_1.default &&
+                    resolution.proposal() instanceof ExchangeKnowledge_1.default
+                    ? (0, exchanged_1.takenBy)(resolution.proposal(), player)
+                    : null;
+                if (taken !== null) {
+                    // It says what it took, then carries on (civ-clone/web-renderer#453).
+                    return new AdvanceTaken_1.default(player, taken, negotiation, ruleRegistry);
+                }
+                return resolution.proposal().by() === player
+                    ? nextTopic(negotiation)
+                    : // The other player's demand, answered: the meeting is over.
+                        end(negotiation, meeting(negotiation).other);
+            },
         ],
         // The computer player answers the other's demand: it pays if what it would give comes to anything.
         [

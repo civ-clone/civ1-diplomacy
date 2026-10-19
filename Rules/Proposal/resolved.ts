@@ -23,6 +23,7 @@ import Vendetta from '@civ-clone/library-diplomacy/Declarations/Vendetta';
 import Never from '@civ-clone/core-diplomacy/Expiries/Never';
 import { activeDeclarations } from '../../lib/declareWar';
 import { knownMeeting } from '../../lib/meeting';
+import { recordTaken } from '../../lib/exchanged';
 
 declare global {
   interface ChoiceMetaDataMap {
@@ -175,6 +176,9 @@ export const getRules = (
 
           playerResearchRegistry.getByPlayer(by).addAdvance(byAdvance);
           playerResearchRegistry.getByPlayer(other).addAdvance(otherAdvance);
+
+          recordTaken(proposal, by, byAdvance);
+          recordTaken(proposal, other, otherAdvance);
 
           calm(proposal);
         }
