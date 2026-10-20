@@ -47,7 +47,10 @@ const getRules = (dependencies, random) => {
         return playerResearchRegistry
             .getByPlayer(from)
             .complete()
-            .filter((advance) => !byResearch.completed(advance.sourceClass()));
+            .filter((advance) => {
+            const AdvanceType = advance.sourceClass();
+            return !AdvanceType.repeatable && !byResearch.completed(AdvanceType);
+        });
     };
     return [
         new Resolved_1.default('civ1-diplomacy:proposal/resolved/peace', accepted(OfferPeace_1.default), new Effect_1.default(async (resolution, proposal) => {

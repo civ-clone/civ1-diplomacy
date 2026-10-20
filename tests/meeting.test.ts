@@ -1,3 +1,4 @@
+import Advance from '@civ-clone/core-science/Advance';
 import { Alphabet, Bronze, Wheel, Writing, position } from './lib/position';
 import AdvanceTaken from '../Dialogues/AdvanceTaken';
 import ExchangeKnowledge from '@civ-clone/library-diplomacy/Proposals/ExchangeKnowledge';
@@ -284,6 +285,39 @@ describe('meeting', (): void => {
     expect(taken.length).equal(offers.length);
     expect(taken[0].by()).equal(computer);
     expect(taken[0].advance()).equal(Alphabet);
+  });
+
+  it('never offers or takes a repeatable advance', async (): Promise<void> => {
+    class Repeatable extends Advance {
+      static readonly repeatable = true;
+    }
+
+    const setup = position([
+        { advances: [Bronze, Repeatable], cities: [0] },
+        { human: true, advances: [Alphabet, Repeatable], cities: [0] },
+      ]),
+      [computer, human] = setup.players,
+      { negotiation } = await meet(setup, pick(Accept));
+
+    const offers = negotiation
+      .interactions()
+      .filter(
+        (action): action is ExchangeKnowledge =>
+          action instanceof ExchangeKnowledge
+      );
+
+    expect(offers.length).greaterThan(0);
+    offers.forEach((offer) =>
+      expect(offer.advances().map((advance) => advance.sourceClass())).eql([
+        Bronze,
+      ])
+    );
+    expect(
+      setup.advances.get(human)!.filter((Known) => Known === Repeatable)
+    ).length(1);
+    expect(
+      setup.advances.get(computer)!.filter((Known) => Known === Repeatable)
+    ).length(1);
   });
 
   it('takes the reply to "You respond..." as its answer, with no OK first (#454)', async (): Promise<void> => {

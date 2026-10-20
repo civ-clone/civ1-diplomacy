@@ -118,9 +118,11 @@ export const getRules = (
       return playerResearchRegistry
         .getByPlayer(from)
         .complete()
-        .filter(
-          (advance: Advance) => !byResearch.completed(advance.sourceClass())
-        );
+        .filter((advance: Advance): boolean => {
+          const AdvanceType = advance.sourceClass<typeof Advance>();
+
+          return !AdvanceType.repeatable && !byResearch.completed(AdvanceType);
+        });
     },
     known = (player: Player): number =>
       playerResearchRegistry.getByPlayer(player).complete().length,

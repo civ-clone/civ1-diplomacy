@@ -64,7 +64,10 @@ const getRules = (dependencies, random) => {
         return playerResearchRegistry
             .getByPlayer(from)
             .complete()
-            .filter((advance) => !byResearch.completed(advance.sourceClass()));
+            .filter((advance) => {
+            const AdvanceType = advance.sourceClass();
+            return !AdvanceType.repeatable && !byResearch.completed(AdvanceType);
+        });
     }, known = (player) => playerResearchRegistry.getByPlayer(player).complete().length, goldDemanded = (tribute) => tribute.tribute() instanceof Gold_1.default, say = (negotiation, key) => new Dialogue_1.default(meeting(negotiation).player, key, negotiation, ruleRegistry), end = (negotiation, by) => new Terminate_1.default(by, negotiation, ruleRegistry), 
     // What the computer player says next, after its greeting and after each answer.
     nextTopic = (negotiation) => {
