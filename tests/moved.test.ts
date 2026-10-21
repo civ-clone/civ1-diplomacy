@@ -94,4 +94,36 @@ describe('unit:moved', (): void => {
       interactionRegistry.getByPlayers(unit.player(), otherUnit.player())
     ).length(0);
   });
+
+  it('should register one `Contact` between two `Player`s however often their `Unit`s meet', async (): Promise<void> => {
+    const world = new World(new FillGenerator(8, 8, Grassland), ruleRegistry);
+
+    await world.build();
+
+    const unit = new Unit(
+        null,
+        new Player(ruleRegistry),
+        world.get(0, 0),
+        ruleRegistry
+      ),
+      enemyUnit = new Unit(
+        null,
+        new Player(ruleRegistry),
+        world.get(1, 2),
+        ruleRegistry
+      ),
+      // Back and forth beside the other player's unit, as a unit along a railroad did, a step at a time.
+      steps = [world.get(1, 1), world.get(1, 2), world.get(1, 1)];
+
+    unitRegistry.register(unit, enemyUnit);
+
+    steps.forEach((tile): void => {
+      enemyUnit.moves().set(1);
+      new Move(enemyUnit.tile(), tile, enemyUnit, ruleRegistry).perform();
+    });
+
+    expect(
+      interactionRegistry.getByPlayers(unit.player(), enemyUnit.player())
+    ).length(1);
+  });
 });
