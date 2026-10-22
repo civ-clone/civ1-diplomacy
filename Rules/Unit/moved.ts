@@ -13,6 +13,7 @@ import Moved from '@civ-clone/core-unit/Rules/Moved';
 import Player from '@civ-clone/core-player/Player';
 import Tile from '@civ-clone/core-world/Tile';
 import Unit from '@civ-clone/core-unit/Unit';
+import isBarbarian from '@civ-clone/base-civilization-barbarian/isBarbarian';
 
 export const getRules: (
   interactionRegistry?: InteractionRegistry,
@@ -52,6 +53,8 @@ export const getRules: (
 
   return [
     new Moved(
+      // Barbarians make contact with no one (civ-clone/web-renderer#169).
+      new Criterion((unit: Unit): boolean => !isBarbarian(unit.player())),
       new Criterion((unit: Unit): boolean =>
         unit
           .tile()
@@ -60,7 +63,9 @@ export const getRules: (
             unitRegistry
               .getByTile(tile)
               .some(
-                (tileUnit: Unit): boolean => tileUnit.player() !== unit.player()
+                (tileUnit: Unit): boolean =>
+                  tileUnit.player() !== unit.player() &&
+                  !isBarbarian(tileUnit.player())
               )
           )
       ),
@@ -72,7 +77,9 @@ export const getRules: (
             unitRegistry
               .getByTile(tile)
               .filter(
-                (tileUnit: Unit): boolean => tileUnit.player() !== unit.player()
+                (tileUnit: Unit): boolean =>
+                  tileUnit.player() !== unit.player() &&
+                  !isBarbarian(tileUnit.player())
               )
               .forEach((tileUnit: Unit): void => {
                 if (inContact(unit.player(), tileUnit.player())) {

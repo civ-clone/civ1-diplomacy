@@ -4,6 +4,7 @@ import Effect from '@civ-clone/core-rule/Effect';
 import MayNegotiate from '@civ-clone/library-diplomacy/Rules/Player/MayNegotiate';
 import Peace from '@civ-clone/base-diplomacy-declaration-peace/Peace';
 import Player from '@civ-clone/core-player/Player';
+import isBarbarian from '@civ-clone/base-civilization-barbarian/isBarbarian';
 import isHuman from '@civ-clone/civ1-difficulty/isHuman';
 import { lastNegotiated } from '@civ-clone/library-diplomacy/lib/mayNegotiate';
 
@@ -18,6 +19,16 @@ export const getRules = (dependencies: Dependencies): MayNegotiate[] => {
     isHuman(other, dependencies.clientRegistry);
 
   return [
+    // Barbarians can't be talked to (civ-clone/web-renderer#169). A rule that answers no, rather than a criterion on
+    //  the two below: with no rule applying, `mayNegotiate` falls back to its default spacing and says yes.
+    new MayNegotiate(
+      'civ1-diplomacy:player/may-negotiate/not-the-barbarians',
+      new Criterion(
+        (player: Player, other: Player): boolean =>
+          isBarbarian(player) || isBarbarian(other)
+      ),
+      new Effect((): boolean => false)
+    ),
     new MayNegotiate(
       'civ1-diplomacy:player/may-negotiate/with-the-human',
       new Criterion(humanInvolved),
