@@ -31,6 +31,7 @@
   },
   "dependencies": {
     "@civ-clone/base-city-yield-gold": "^0.1.0",
+    "@civ-clone/base-civilization-barbarian": "^0.1.0",
     "@civ-clone/base-diplomacy-declaration-peace": "^0.1.0",
     "@civ-clone/base-diplomacy-declaration-war": "^0.1.0",
     "@civ-clone/base-diplomacy-interaction-contact": "^0.1.0",

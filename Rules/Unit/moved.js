@@ -7,6 +7,7 @@ const Interactions_1 = require("../../Interactions");
 const Criterion_1 = require("@civ-clone/core-rule/Criterion");
 const Effect_1 = require("@civ-clone/core-rule/Effect");
 const Moved_1 = require("@civ-clone/core-unit/Rules/Moved");
+const isBarbarian_1 = require("@civ-clone/base-civilization-barbarian/isBarbarian");
 const getRules = (interactionRegistry = InteractionRegistry_1.instance, unitRegistry = UnitRegistry_1.instance) => {
     // The players each player has a `Contact` with, filled in from the registry the first time a pair is asked about.
     const met = new WeakMap(), metOf = (player) => {
@@ -32,17 +33,21 @@ const getRules = (interactionRegistry = InteractionRegistry_1.instance, unitRegi
         return found;
     };
     return [
-        new Moved_1.default(new Criterion_1.default((unit) => unit
+        new Moved_1.default(
+        // Barbarians make contact with no one (civ-clone/web-renderer#169).
+        new Criterion_1.default((unit) => !(0, isBarbarian_1.default)(unit.player())), new Criterion_1.default((unit) => unit
             .tile()
             .getNeighbours()
             .some((tile) => unitRegistry
             .getByTile(tile)
-            .some((tileUnit) => tileUnit.player() !== unit.player()))), new Effect_1.default((unit) => unit
+            .some((tileUnit) => tileUnit.player() !== unit.player() &&
+            !(0, isBarbarian_1.default)(tileUnit.player())))), new Effect_1.default((unit) => unit
             .tile()
             .getNeighbours()
             .forEach((tile) => unitRegistry
             .getByTile(tile)
-            .filter((tileUnit) => tileUnit.player() !== unit.player())
+            .filter((tileUnit) => tileUnit.player() !== unit.player() &&
+            !(0, isBarbarian_1.default)(tileUnit.player()))
             .forEach((tileUnit) => {
             if (inContact(unit.player(), tileUnit.player())) {
                 return;
