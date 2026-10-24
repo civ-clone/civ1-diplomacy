@@ -27,9 +27,11 @@ export const declareWar = (
   other: Player
 ): void => {
   active(dependencies, ShamPeace, player, other).forEach((sham) =>
-    sham.expire()
+    sham.expire(player)
   );
-  active(dependencies, Peace, player, other).forEach((peace) => peace.expire());
+  active(dependencies, Peace, player, other).forEach((peace) =>
+    peace.expire(player)
+  );
 
   dependencies.interactionRegistry.register(
     new War(player, other, new Never(), dependencies.ruleRegistry)

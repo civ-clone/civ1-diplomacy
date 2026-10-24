@@ -47,7 +47,7 @@
     "@civ-clone/core-civilization": "^0.1.7",
     "@civ-clone/core-client": "^0.1.2",
     "@civ-clone/core-difficulty": "^0.1.0",
-    "@civ-clone/core-diplomacy": "^0.1.0",
+    "@civ-clone/core-diplomacy": "^0.1.7",
     "@civ-clone/core-engine": "^0.1.0",
     "@civ-clone/core-game": "^0.1.1",
     "@civ-clone/core-government": "^0.1.0",

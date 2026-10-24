@@ -141,7 +141,7 @@ export const getRules = (
             Peace,
             resolution.by(),
             enemy
-          ).forEach((peace) => peace.expire());
+          ).forEach((peace) => peace.expire(resolution.by()));
 
           dependencies.interactionRegistry.register(
             new Vendetta(enemy, resolution.by(), new Never(), ruleRegistry)
