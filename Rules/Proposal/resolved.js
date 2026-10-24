@@ -69,7 +69,7 @@ const getRules = (dependencies, random) => {
         //  computer player then waives its tribute (L853-930).
         new Resolved_1.default('civ1-diplomacy:proposal/resolved/cancel-treaty', accepted(CancelTreaty_1.default), new Effect_1.default(async (resolution, proposal) => {
             const enemy = proposal.with(), meeting = (0, meeting_1.knownMeeting)(negotiationOf(proposal));
-            (0, declareWar_2.activeDeclarations)(dependencies, Peace_1.default, resolution.by(), enemy).forEach((peace) => peace.expire());
+            (0, declareWar_2.activeDeclarations)(dependencies, Peace_1.default, resolution.by(), enemy).forEach((peace) => peace.expire(resolution.by()));
             dependencies.interactionRegistry.register(new Vendetta_1.default(enemy, resolution.by(), new Never_1.default(), ruleRegistry));
             calm(proposal);
             if (meeting !== null && random() < 0.5) {

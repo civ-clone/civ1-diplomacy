@@ -16,11 +16,14 @@ const getRules = (engine = Engine_1.instance, interactionRegistry = InteractionR
         !(declaration instanceof Peace_1.default &&
             interactionRegistry
                 .getByPlayers(...declaration.players())
-                .some((interaction) => interaction instanceof ShamPeace_1.default && interaction.active()))), new Effect_1.default((declaration) => {
-        engine.emit('diplomacy:declaration-expired', declaration);
+                .some((interaction) => interaction instanceof ShamPeace_1.default && interaction.active()))), 
+    // `by` is the player who ended it, if one did (civ-clone/web-renderer#641): whoever breaks a treaty isn't told
+    //  they've been attacked.
+    new Effect_1.default((declaration, by = null) => {
+        engine.emit('diplomacy:declaration-expired', declaration, by);
         declaration
             .players()
-            .forEach((player) => engine.emit('player:declaration-expired', player, declaration));
+            .forEach((player) => engine.emit('player:declaration-expired', player, declaration, by));
     })),
 ];
 exports.getRules = getRules;

@@ -20,8 +20,8 @@ const getRules = (dependencies, random) => [
             return;
         }
         // The treaty goes first, while the sham still marks it as one to end quietly (`Rules/Declaration/expired`).
-        treaties.forEach((peace) => peace.expire());
-        sham.expire();
+        treaties.forEach((peace) => peace.expire(sham.holder()));
+        sham.expire(sham.holder());
     }))),
 ];
 exports.getRules = getRules;
