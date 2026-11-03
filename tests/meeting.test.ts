@@ -248,7 +248,7 @@ describe('meeting', (): void => {
       });
 
     expect(log).include('Dialogue:handover');
-    expect(offered).deep.include(['DemandTribute', 'Terminate']);
+    expect(offered).deep.include(['Terminate', 'DemandTribute']);
     expect(log.filter((entry) => entry === 'DemandTribute')).length(1);
     expect(setup.gold.get(setup.players[1])).equal(100);
   });
@@ -364,6 +364,76 @@ describe('meeting', (): void => {
 
     expect(active(setup, ShamPeace, setup.players[0], setup.players[1])).length(
       1
+    );
+  });
+
+  it('offers the answer that costs nothing first (web-renderer#674)', async (): Promise<void> => {
+    // What the human was offered first, after what the computer player last said.
+    const firsts = async (
+        setup: Setup,
+        choose: (steps: IAction[]) => IAction
+      ): Promise<string[]> => {
+        const offered: string[] = [];
+
+        await meet(setup, (steps) => {
+          const first = steps[0],
+            proposal =
+              first instanceof Resolution
+                ? first.proposal().constructor.name
+                : 'handover';
+
+          offered.push(`${proposal}:${first.constructor.name}`);
+
+          return choose(steps);
+        });
+
+        return offered;
+      },
+      atPeace = (setup: Setup): Setup => {
+        setup.interactionRegistry.register(
+          new Peace(
+            setup.players[0],
+            setup.players[1],
+            new Never(),
+            setup.ruleRegistry
+          )
+        );
+
+        return setup;
+      },
+      afraid = () =>
+        position([
+          {
+            gold: 200,
+            advances: [Bronze],
+            cities: [0, 0],
+            units: [{ on: 0, attack: 1, defence: 2 }],
+          },
+          {
+            human: true,
+            advances: [Wheel],
+            units: [{ on: 0, attack: 9, defence: 1 }],
+          },
+        ]),
+      swap = () =>
+        position([
+          { advances: [Bronze, Wheel], cities: [0] },
+          { human: true, advances: [Alphabet, Writing], cities: [0] },
+        ]);
+
+    expect(await firsts(bully(), refuseAll)).include.members([
+      'Initiate:Accept',
+      'DemandTribute:Decline',
+    ]);
+    expect(await firsts(swap(), refuseAll)).include(
+      'ExchangeKnowledge:Decline'
+    );
+    expect(await firsts(afraid(), refuseAll)).include.members([
+      'OfferPeace:Accept',
+      'OfferPeaceWithGift:Accept',
+    ]);
+    expect(await firsts(atPeace(bully()), pick(Accept, Terminate))).include(
+      'handover:Terminate'
     );
   });
 

@@ -34,6 +34,10 @@ const exchanged_1 = require("../../lib/exchanged");
 //
 // Two computer players don't parley: they meet, and the game decides war or peace (`wouldGoToWar`).
 //
+// The answers on offer come in the order of the rows below, the one that costs the answering player nothing first, so
+//  a client taking the first takes the safe one (civ-clone/web-renderer#674): receiving the emissary, refusing a
+//  demand, an exchange or a call to cancel a treaty, accepting peace, and leaving rather than demanding in turn.
+//
 // Nothing here changes the meeting: what has been said so far is read from the negotiation, so the steps can be
 //  asked for as often as a client likes. The answers' effects are in `Rules/Proposal/resolved`.
 const getRules = (dependencies, random) => {
@@ -69,6 +73,8 @@ const getRules = (dependencies, random) => {
             return !AdvanceType.repeatable && !byResearch.completed(AdvanceType);
         });
     }, known = (player) => playerResearchRegistry.getByPlayer(player).complete().length, goldDemanded = (tribute) => tribute.tribute() instanceof Gold_1.default, say = (negotiation, key) => new Dialogue_1.default(meeting(negotiation).player, key, negotiation, ruleRegistry), end = (negotiation, by) => new Terminate_1.default(by, negotiation, ruleRegistry), 
+    // The other player turning down what the computer player just proposed.
+    decline = (negotiation) => new Decline_1.default(meeting(negotiation).other, last(negotiation), ruleRegistry), 
     // What the computer player says next, after its greeting and after each answer.
     nextTopic = (negotiation) => {
         const { player, other, stance } = meeting(negotiation), theirs = advancesLacked(other, player), ours = advancesLacked(player, other);
@@ -234,19 +240,26 @@ const getRules = (dependencies, random) => {
             (negotiation) => acknowledged(negotiation, 'computer', 'declare-war', 'farewell', 'accept-peace'),
             (negotiation) => end(negotiation, meeting(negotiation).player),
         ],
-        [(negotiation) => justSaid(negotiation, 'handover'), handoverDemand],
         [
             (negotiation) => justSaid(negotiation, 'handover'),
             (negotiation) => end(negotiation, meeting(negotiation).other),
         ],
-        // The computer player's proposals, answered by the other player.
+        [(negotiation) => justSaid(negotiation, 'handover'), handoverDemand],
+        // The computer player's proposals, answered by the other player: peace accepted first, anything else refused
+        //  first.
+        [
+            (negotiation) => proposedByComputer(negotiation) !== null &&
+                !(last(negotiation) instanceof OfferPeace_1.default),
+            (negotiation) => decline(negotiation),
+        ],
         [
             (negotiation) => proposedByComputer(negotiation) !== null,
             (negotiation) => new Accept_1.default(meeting(negotiation).other, last(negotiation), ruleRegistry),
         ],
         [
-            (negotiation) => proposedByComputer(negotiation) !== null,
-            (negotiation) => new Decline_1.default(meeting(negotiation).other, last(negotiation), ruleRegistry),
+            (negotiation) => proposedByComputer(negotiation) !== null &&
+                last(negotiation) instanceof OfferPeace_1.default,
+            (negotiation) => decline(negotiation),
         ],
         [
             (negotiation) => lastWas(negotiation, Accept_1.default, OfferPeace_1.default),
