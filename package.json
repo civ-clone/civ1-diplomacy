@@ -18,6 +18,9 @@
     "ts:compile": "tsc --build tsconfig.json"
   },
   "devDependencies": {
+    "@civ-clone/base-terrain-grassland": "^0.1.0",
+    "@civ-clone/core-power": "^0.1.0",
+    "@civ-clone/core-turn-based-game": "^0.1.0",
     "@civ-clone/simple-world-generator": "github:civ-clone/simple-world-generator",
     "@types/chai": "^4.3.4",
     "@types/mocha": "^10.0.1",
@@ -32,11 +35,10 @@
   "dependencies": {
     "@civ-clone/base-city-yield-gold": "^0.1.0",
     "@civ-clone/base-civilization-barbarian": "^0.1.0",
+    "@civ-clone/base-diplomacy": "^0.1.0",
     "@civ-clone/base-diplomacy-declaration-peace": "^0.1.0",
     "@civ-clone/base-diplomacy-declaration-war": "^0.1.0",
     "@civ-clone/base-diplomacy-interaction-contact": "^0.1.0",
-    "@civ-clone/base-leader-personality": "^0.1.1",
-    "@civ-clone/base-terrain-grassland": "^0.1.0",
     "@civ-clone/base-unit-action-nuclear-attack": "^0.1.0",
     "@civ-clone/base-unit-action-steal-technology": "^0.1.0",
     "@civ-clone/civ1-civilization": "github:civ-clone/civ1-civilization",
@@ -50,14 +52,9 @@
     "@civ-clone/core-diplomacy": "^0.1.7",
     "@civ-clone/core-engine": "^0.1.0",
     "@civ-clone/core-game": "^0.1.1",
-    "@civ-clone/core-government": "^0.1.0",
     "@civ-clone/core-player": "^0.1.7",
-    "@civ-clone/core-power": "^0.1.0",
-    "@civ-clone/core-registry": "^0.1.1",
     "@civ-clone/core-rule": "^0.1.0",
     "@civ-clone/core-science": "^0.1.4",
-    "@civ-clone/core-treasury": "^0.1.8",
-    "@civ-clone/core-turn-based-game": "^0.1.0",
     "@civ-clone/core-unit": "^0.1.0",
     "@civ-clone/core-world": "^0.1.0",
     "@civ-clone/library-diplomacy": "^0.1.4"
