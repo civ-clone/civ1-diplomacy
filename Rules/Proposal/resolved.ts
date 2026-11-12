@@ -22,7 +22,12 @@ import Resolved from '@civ-clone/core-diplomacy/Rules/Proposal/Resolved';
 import Vendetta from '@civ-clone/library-diplomacy/Declarations/Vendetta';
 import Never from '@civ-clone/core-diplomacy/Expiries/Never';
 import { activeDeclarations } from '../../lib/declareWar';
-import { knownMeeting } from '../../lib/meeting';
+import { advancesLacked, give } from '@civ-clone/base-diplomacy/lib/knowledge';
+import {
+  calm,
+  knownMeeting,
+  negotiationOf,
+} from '@civ-clone/base-diplomacy/lib/meeting';
 import { recordTaken } from '../../lib/exchanged';
 
 declare global {
@@ -31,40 +36,12 @@ declare global {
   }
 }
 
-const negotiationOf = (proposal: IProposal): Negotiation =>
-  (proposal as unknown as { negotiation(): Negotiation }).negotiation();
-
 // What each answer in a meeting does (`Rules/Negotiation/step`).
 export const getRules = (
   dependencies: Dependencies,
   random: () => number
 ): Resolved[] => {
-  const {
-      clientRegistry,
-      playerResearchRegistry,
-      playerTreasuryRegistry,
-      ruleRegistry,
-    } = dependencies,
-    // Whatever the other player gives the computer player calms it: it's no longer hostile.
-    calm = (proposal: IProposal): void => {
-      const meeting = knownMeeting(negotiationOf(proposal));
-
-      if (meeting !== null && proposal.by() === meeting.player) {
-        meeting.stance.hostile = false;
-      }
-    },
-    give = (gift: Advance | Gold, from: Player, to: Player): void => {
-      if (gift instanceof Gold) {
-        playerTreasuryRegistry
-          .getByPlayerAndType(from, Gold)
-          .subtract(gift.value());
-        playerTreasuryRegistry.getByPlayerAndType(to, Gold).add(gift.value());
-
-        return;
-      }
-
-      playerResearchRegistry.getByPlayer(to).addAdvance(gift.sourceClass());
-    },
+  const { clientRegistry, playerResearchRegistry, ruleRegistry } = dependencies,
     accepted = (ProposalType: new (...args: any[]) => IProposal) =>
       new Criterion(
         (resolution: IResolution, proposal: IProposal): boolean =>
@@ -79,19 +56,7 @@ export const getRules = (
             (key) =>
               proposal.key() === key || proposal.key().startsWith(`${key}.`)
           )
-      ),
-    advancesLacked = (from: Player, by: Player): Advance[] => {
-      const byResearch = playerResearchRegistry.getByPlayer(by);
-
-      return playerResearchRegistry
-        .getByPlayer(from)
-        .complete()
-        .filter((advance: Advance): boolean => {
-          const AdvanceType = advance.sourceClass<typeof Advance>();
-
-          return !AdvanceType.repeatable && !byResearch.completed(AdvanceType);
-        });
-    };
+      );
 
   return [
     new Resolved(
@@ -102,7 +67,9 @@ export const getRules = (
           if (proposal instanceof OfferPeaceWithGift) {
             proposal
               .gifts()
-              .forEach((gift) => give(gift, proposal.by(), resolution.by()));
+              .forEach((gift) =>
+                give(dependencies, gift, proposal.by(), resolution.by())
+              );
           }
 
           makePeace(dependencies, proposal.by(), resolution.by());
@@ -116,6 +83,7 @@ export const getRules = (
       new Effect(
         async (resolution: IResolution, proposal: IProposal): Promise<void> => {
           give(
+            dependencies,
             (proposal as DemandTribute).tribute(),
             resolution.by(),
             proposal.by()
@@ -166,7 +134,7 @@ export const getRules = (
             choose = (player: Player, from: Player) =>
               clientRegistry.getByPlayer(player).chooseFromList(
                 new ChoiceMeta(
-                  advancesLacked(from, player).map((advance) =>
+                  advancesLacked(dependencies, from, player).map((advance) =>
                     advance.sourceClass()
                   ),
                   'diplomacy.exchange-knowledge',
@@ -204,12 +172,12 @@ export const getRules = (
       new Effect(
         async (resolution: IResolution, proposal: IProposal): Promise<void> => {
           const [player, other] = [proposal.by(), resolution.by()],
-            theirs = advancesLacked(other, player),
-            ours = advancesLacked(player, other);
+            theirs = advancesLacked(dependencies, other, player),
+            ours = advancesLacked(dependencies, player, other);
 
           if (theirs.length > 0 && ours.length > 0) {
-            give(theirs[theirs.length - 1], other, player);
-            give(ours[ours.length - 1], player, other);
+            give(dependencies, theirs[theirs.length - 1], other, player);
+            give(dependencies, ours[ours.length - 1], player, other);
           }
 
           makePeace(dependencies, player, other);
