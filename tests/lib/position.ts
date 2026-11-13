@@ -14,6 +14,7 @@ import RuleRegistry from '@civ-clone/core-rule/RuleRegistry';
 import MilitaryStrength from '@civ-clone/core-power/Rules/MilitaryStrength';
 import Tile from '@civ-clone/core-world/Tile';
 import Unit from '@civ-clone/core-unit/Unit';
+import unitTraits from '@civ-clone/civ1-unit/Rules/Unit/traits';
 
 // A hand-built position for the meeting's arithmetic: who has what where, with stand-ins for everything the meeting
 //  only reads. Land masses are lists of stand-in tiles; a unit or city is on one of them, or at sea.
@@ -29,6 +30,8 @@ export interface Side {
     attack: number;
     defence: number;
     nuclear?: boolean;
+    // The unit's type, when it matters which: a plain `Unit` (or `Nuclear`, with `nuclear`) otherwise.
+    type?: typeof Unit;
   }[];
   cities?: number[];
 }
@@ -70,13 +73,19 @@ export const position = (
     units = new Map(
       players.map((player, index) => [
         player,
-        (sides[index].units ?? []).map(({ on, attack, defence, nuclear }) =>
-          Object.assign(Object.create((nuclear ? Nuclear : Unit).prototype), {
-            attack: () => ({ value: () => attack }),
-            defence: () => ({ value: () => defence }),
-            player: () => player,
-            tile: () => (on === null ? sea : tiles[on][0]),
-          })
+        (sides[index].units ?? []).map(
+          ({ on, attack, defence, nuclear, type }) =>
+            Object.assign(
+              Object.create((type ?? (nuclear ? Nuclear : Unit)).prototype),
+              {
+                // The rules, which hold civ1-unit's trait declarations, for `unit.hasTrait()`.
+                _ruleRegistry: ruleRegistry,
+                attack: () => ({ value: () => attack }),
+                defence: () => ({ value: () => defence }),
+                player: () => player,
+                tile: () => (on === null ? sea : tiles[on][0]),
+              }
+            )
         ),
       ])
     ),
@@ -91,6 +100,8 @@ export const position = (
     );
 
   ruleRegistry.register(
+    // As a game registers them, before anything asks a unit's traits (`nukes`: `Detonates`).
+    ...unitTraits(),
     new MilitaryStrength(
       new Effect((unit: Unit) => ({
         attack: unit.attack().value(),

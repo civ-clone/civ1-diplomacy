@@ -7,7 +7,7 @@ import {
   unitCount,
 } from '@civ-clone/base-diplomacy/lib/standing';
 import Dependencies from './Dependencies';
-import { Nuclear } from '@civ-clone/civ1-unit/Units';
+import Detonates from '@civ-clone/base-unit-trait-detonates/Detonates';
 import Player from '@civ-clone/core-player/Player';
 import Trait from '@civ-clone/core-civilization/Trait';
 import Unit from '@civ-clone/core-unit/Unit';
@@ -30,8 +30,9 @@ export {
   rankedFirst,
 } from '@civ-clone/base-diplomacy/lib/standing';
 
+// v474.05 counts its Nuclear units: here, those that `Detonates`.
 export const nukes = (dependencies: Dependencies, player: Player): number =>
-  unitCount(dependencies, player, (unit: Unit) => unit instanceof Nuclear);
+  unitCount(dependencies, player, (unit: Unit) => unit.hasTrait(Detonates));
 
 // The leader's Mood in v474.05 (`NationDefinition.cs`): 1 Aggressive, −1 Friendly, 0 otherwise.
 export const mood = (dependencies: Dependencies, player: Player): number =>
